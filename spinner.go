@@ -10,6 +10,46 @@ var defaultSymbols = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "
 
 const defaultSeparator = "\u2022" /* • */
 
+var (
+	// normal colors.
+	ColorBlack   = "\x1b[30m"
+	ColorBlue    = "\x1b[34m"
+	ColorCyan    = "\x1b[36m"
+	ColorGray    = "\x1b[90m"
+	ColorGreen   = "\x1b[32m"
+	ColorMagenta = "\x1b[95m"
+	ColorOrange  = "\x1b[33m"
+	ColorPurple  = "\x1b[35m"
+	ColorRed     = "\x1b[31m"
+	ColorWhite   = "\x1b[37m"
+	ColorYellow  = "\x1b[93m"
+
+	// bright colors.
+	ColorBrightBlack   = "\x1b[90m"
+	ColorBrightBlue    = "\x1b[94m"
+	ColorBrightCyan    = "\x1b[96m"
+	ColorBrightGray    = "\x1b[37m"
+	ColorBrightGreen   = "\x1b[92m"
+	ColorBrightMagenta = "\x1b[95m"
+	ColorBrightOrange  = "\x1b[38;5;214m"
+	ColorBrightPurple  = "\x1b[38;5;135m"
+	ColorBrightRed     = "\x1b[91m"
+	ColorBrightWhite   = "\x1b[97m"
+	ColorBrightYellow  = "\x1b[93m"
+
+	// styles.
+	ColorStyleBold          = "\x1b[1m"
+	ColorStyleDim           = "\x1b[2m"
+	ColorStyleInverse       = "\x1b[7m"
+	ColorStyleItalic        = "\x1b[3m"
+	ColorStyleStrikethrough = "\x1b[9m"
+	ColorStyleUnderline     = "\x1b[4m"
+
+	// other.
+	colorDefault = "\x1b[39m"
+	colorReset   = "\x1b[0m"
+)
+
 // WithPrefix returns an option function that sets the spinner prefix.
 func WithPrefix(prefix string) Option {
 	return func(p *Spinner) {
