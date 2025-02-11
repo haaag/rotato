@@ -9,7 +9,10 @@ import (
 
 var defaultSymbols = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
-const defaultSeparator = "\u2022" /* • */
+const (
+	defaultSeparator = "\u2022" /* • */
+	clearChars       = "\r\033[K"
+)
 
 var (
 	// normal colors.
@@ -140,7 +143,6 @@ func (sp *Spinner) Start() {
 		for i := 0; ; i++ {
 			select {
 			case <-sp.stopChan:
-				fmt.Print("\r\033[K")
 				return
 			case <-ticker.C:
 				// message
@@ -153,7 +155,7 @@ func (sp *Spinner) Start() {
 				if sp.prefix != "" {
 					parsePrefix(sp, frame, mesg)
 				} else {
-					fmt.Printf("\r\033[K%s %s", frame, mesg)
+					fmt.Printf("%s%s %s", clearChars, frame, mesg)
 				}
 			}
 		}
@@ -171,8 +173,8 @@ func (sp *Spinner) Stop() {
 
 	sp.isRunning = false
 	sp.stopChan <- true
-	// FIX: must add this `time.Sleep` because the message is not cleared.
-	time.Sleep(50 * time.Millisecond)
+
+	fmt.Print(clearChars)
 }
 
 // UpdateMessage changes the message shown next to the spinner.
@@ -196,7 +198,7 @@ func parsePrefix(sp *Spinner, frame, mesg string) {
 	sp.prefixUpdate.RUnlock()
 	sep := sp.colorSeparator + sp.separator + colorReset
 
-	fmt.Printf("\r\033[K%s %s %s %s", prefix, sep, frame, mesg)
+	fmt.Printf("%s%s %s %s %s", clearChars, prefix, sep, frame, mesg)
 }
 
 // New returns a new spinner.
