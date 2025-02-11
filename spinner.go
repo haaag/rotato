@@ -10,8 +10,8 @@ import (
 var defaultSymbols = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 const (
-	defaultSeparator = "\u2022" /* • */
-	clearChars       = "\r\033[K"
+	nbsp       = "\u00A0\u00A0"
+	clearChars = "\r\033[K"
 )
 
 var (
@@ -97,18 +97,25 @@ func WithColorPrefix(color ...string) Option {
 	}
 }
 
-// WithColorSeparator returns an option function that sets the spinner color
-// separator, only visible with `prefix`.
-func WithColorSeparator(color ...string) Option {
+// WithColorDelimiter returns an option function that sets the spinner color
+// delimiter, only visible with `prefix`.
+func WithColorDelimiter(color ...string) Option {
 	return func(sp *Spinner) {
-		sp.colorSeparator = strings.Join(color, "")
+		sp.colorDelimiter = strings.Join(color, "")
 	}
 }
 
-// WithSeparator returns an option function that sets the spinner separator.
-func WithSeparator(s string) Option {
+// WithDelimiter returns an option function that sets the spinner delimiter.
+func WithDelimiter(s string) Option {
 	return func(sp *Spinner) {
-		sp.separator = s
+		sp.delimiter = s
+	}
+}
+
+// WithDelay returns an option function that sets the spinner delay.
+func WithDelay(d time.Duration) Option {
+	return func(sp *Spinner) {
+		sp.delay = d
 	}
 }
 
@@ -119,15 +126,16 @@ type Option func(*Spinner)
 type Spinner struct {
 	colorMessage   string
 	colorPrefix    string
-	colorSeparator string
+	colorDelimiter string
 	colorSpinner   string
+	delay          time.Duration
 	isRunning      bool
 	message        string
 	messageUpdate  sync.RWMutex
 	mu             *sync.RWMutex
 	prefix         string
 	prefixUpdate   sync.RWMutex
-	separator      string
+	delimiter      string
 	stopChan       chan bool
 	stopSymbol     string
 	symbols        []string
@@ -144,7 +152,7 @@ func (sp *Spinner) Start() {
 
 	sp.isRunning = true
 
-	ticker := time.NewTicker(100 * time.Millisecond)
+	ticker := time.NewTicker(sp.delay)
 	go func() {
 		defer ticker.Stop()
 
@@ -153,12 +161,8 @@ func (sp *Spinner) Start() {
 			case <-sp.stopChan:
 				return
 			case <-ticker.C:
-				// message
-				sp.messageUpdate.RLock()
-				mesg := sp.colorMessage + sp.message + colorReset
-				sp.messageUpdate.RUnlock()
-
-				frame := sp.colorSpinner + sp.symbols[i%len(sp.symbols)] + colorReset
+				mesg := sp.currentMessage()
+				frame := sp.currentFrame(i)
 
 				if sp.prefix != "" {
 					sp.parsePrefix(frame, mesg)
@@ -201,6 +205,19 @@ func (sp *Spinner) UpdatePrefix(mesg string) {
 	sp.prefixUpdate.Unlock()
 }
 
+// currentMessage safely constructs and returns the current message.
+func (sp *Spinner) currentMessage() string {
+	sp.messageUpdate.RLock()
+	defer sp.messageUpdate.RUnlock()
+
+	return sp.colorMessage + sp.message + colorReset
+}
+
+// currentFrame returns the spinner frame for the given iteration.
+func (sp *Spinner) currentFrame(i int) string {
+	return sp.colorSpinner + sp.symbols[i%len(sp.symbols)] + colorReset
+}
+
 // stopMessage shows the stop message.
 func (sp *Spinner) stopMessage(mesg ...string) {
 	if len(mesg) == 0 {
@@ -215,9 +232,7 @@ func (sp *Spinner) stopMessage(mesg ...string) {
 		return
 	}
 
-	if sp.stopSymbol != "" {
-		s = sp.stopSymbol + " " + s
-	}
+	s = sp.stopSymbol + " " + s
 
 	fmt.Printf("%s%s\n", clearChars, s)
 }
@@ -227,21 +242,23 @@ func (sp *Spinner) parsePrefix(frame, mesg string) {
 	sp.prefixUpdate.RLock()
 	prefix := sp.colorPrefix + sp.prefix + colorReset
 	sp.prefixUpdate.RUnlock()
-	sep := sp.colorSeparator + sp.separator + colorReset
+	del := sp.colorDelimiter + sp.delimiter + colorReset
 
-	fmt.Printf("%s%s %s %s %s", clearChars, prefix, sep, frame, mesg)
+	fmt.Printf("%s%s%s%s %s", clearChars, prefix, del, frame, mesg)
 }
 
 // New returns a new spinner.
 func New(opt ...Option) *Spinner {
 	sp := &Spinner{
-		isRunning: false,
-		message:   "Loading...",
-		mu:        &sync.RWMutex{},
-		separator: defaultSeparator,
-		stopChan:  make(chan bool),
-		symbols:   defaultSymbols,
-		prefix:    "",
+		delay:      100 * time.Millisecond,
+		delimiter:  nbsp,
+		isRunning:  false,
+		message:    "Loading...",
+		mu:         &sync.RWMutex{},
+		prefix:     "",
+		stopChan:   make(chan bool),
+		stopSymbol: "✓",
+		symbols:    defaultSymbols,
 	}
 	for _, fn := range opt {
 		fn(sp)
