@@ -50,10 +50,17 @@ var (
 	colorReset   = "\x1b[0m"
 )
 
+// WithMessage returns an option function that sets the spinner message.
+func WithMessage(s string) Option {
+	return func(sp *Spinner) {
+		sp.message = s
+	}
+}
+
 // WithPrefix returns an option function that sets the spinner prefix.
 func WithPrefix(prefix string) Option {
-	return func(p *Spinner) {
-		p.prefix = prefix
+	return func(sp *Spinner) {
+		sp.prefix = prefix
 	}
 }
 
