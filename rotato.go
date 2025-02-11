@@ -1,4 +1,5 @@
-package spinner
+// Package rotato is a simple spinner library for Go.
+package rotato
 
 import (
 	"fmt"
