@@ -2,6 +2,7 @@ package spinner
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -45,9 +46,8 @@ var (
 	ColorStyleStrikethrough = "\x1b[9m"
 	ColorStyleUnderline     = "\x1b[4m"
 
-	// other.
-	colorDefault = "\x1b[39m"
-	colorReset   = "\x1b[0m"
+	// reset.
+	colorReset = "\x1b[0m"
 )
 
 // WithMessage returns an option function that sets the spinner message.
@@ -64,20 +64,62 @@ func WithPrefix(prefix string) Option {
 	}
 }
 
+// WithColorSpinner returns an option function that sets the spinner color.
+func WithColorSpinner(color ...string) Option {
+	return func(sp *Spinner) {
+		sp.colorSpinner = strings.Join(color, "")
+	}
+}
+
+// WithColorMessage returns an option function that sets the spinner message
+// color.
+func WithColorMessage(color ...string) Option {
+	return func(sp *Spinner) {
+		sp.colorMessage = strings.Join(color, "")
+	}
+}
+
+// WithColorPrefix returns an option function that sets the spinner color
+// prefix.
+func WithColorPrefix(color ...string) Option {
+	return func(sp *Spinner) {
+		sp.colorPrefix = strings.Join(color, "")
+	}
+}
+
+// WithColorSeparator returns an option function that sets the spinner color
+// separator, only visible with `prefix`.
+func WithColorSeparator(color ...string) Option {
+	return func(sp *Spinner) {
+		sp.colorSeparator = strings.Join(color, "")
+	}
+}
+
+// WithSeparator returns an option function that sets the spinner separator.
+func WithSeparator(s string) Option {
+	return func(sp *Spinner) {
+		sp.separator = s
+	}
+}
+
 // Option is an option function for the spinner.
 type Option func(*Spinner)
 
 // Spinner represents a CLI spinner animation.
 type Spinner struct {
-	isRunning     bool
-	message       string
-	messageUpdate sync.RWMutex
-	mu            *sync.RWMutex
-	prefix        string
-	prefixUpdate  sync.RWMutex
-	separator     string
-	stopChan      chan bool
-	symbols       []string
+	colorMessage   string
+	colorPrefix    string
+	colorSeparator string
+	colorSpinner   string
+	isRunning      bool
+	message        string
+	messageUpdate  sync.RWMutex
+	mu             *sync.RWMutex
+	prefix         string
+	prefixUpdate   sync.RWMutex
+	separator      string
+	stopChan       chan bool
+	symbols        []string
 }
 
 // Start starts the spinning animation in a goroutine.
@@ -103,10 +145,11 @@ func (sp *Spinner) Start() {
 			case <-ticker.C:
 				// message
 				sp.messageUpdate.RLock()
-				mesg := sp.message
+				mesg := sp.colorMessage + sp.message + colorReset
 				sp.messageUpdate.RUnlock()
 
-				frame := sp.symbols[i%len(sp.symbols)]
+				frame := sp.colorSpinner + sp.symbols[i%len(sp.symbols)] + colorReset
+
 				if sp.prefix != "" {
 					parsePrefix(sp, frame, mesg)
 				} else {
@@ -149,9 +192,9 @@ func (sp *Spinner) UpdatePrefix(mesg string) {
 // parsePrefix updates the spinner prefix.
 func parsePrefix(sp *Spinner, frame, mesg string) {
 	sp.prefixUpdate.RLock()
-	prefix := sp.prefix
+	prefix := sp.colorPrefix + sp.prefix + colorReset
 	sp.prefixUpdate.RUnlock()
-	sep := sp.separator
+	sep := sp.colorSeparator + sp.separator + colorReset
 
 	fmt.Printf("\r\033[K%s %s %s %s", prefix, sep, frame, mesg)
 }
