@@ -6,8 +6,16 @@ import (
 	"time"
 )
 
-// Defaults.
 var defaultSymbols = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
+const defaultSeparator = "\u2022" /* • */
+
+// WithPrefix returns an option function that sets the spinner prefix.
+func WithPrefix(prefix string) Option {
+	return func(p *Spinner) {
+		p.prefix = prefix
+	}
+}
 
 // Option is an option function for the spinner.
 type Option func(*Spinner)
@@ -18,6 +26,9 @@ type Spinner struct {
 	message       string
 	messageUpdate sync.RWMutex
 	mu            *sync.RWMutex
+	prefix        string
+	prefixUpdate  sync.RWMutex
+	separator     string
 	stopChan      chan bool
 	symbols       []string
 }
@@ -26,6 +37,10 @@ type Spinner struct {
 func (sp *Spinner) Start() {
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
+
+	if sp.isRunning {
+		return
+	}
 
 	sp.isRunning = true
 
@@ -45,7 +60,11 @@ func (sp *Spinner) Start() {
 				sp.messageUpdate.RUnlock()
 
 				frame := sp.symbols[i%len(sp.symbols)]
-				fmt.Printf("\r\033[K%s %s", frame, mesg)
+				if sp.prefix != "" {
+					parsePrefix(sp, frame, mesg)
+				} else {
+					fmt.Printf("\r\033[K%s %s", frame, mesg)
+				}
 			}
 		}
 	}()
@@ -53,9 +72,14 @@ func (sp *Spinner) Start() {
 
 // Stop stops the spinner animation.
 func (sp *Spinner) Stop() {
+	sp.mu.Lock()
+	defer sp.mu.Unlock()
+
 	if !sp.isRunning {
 		return
 	}
+
+	sp.isRunning = false
 	sp.stopChan <- true
 	// FIX: must add this `time.Sleep` because the message is not cleared.
 	time.Sleep(50 * time.Millisecond)
@@ -68,14 +92,33 @@ func (sp *Spinner) UpdateMessage(mesg string) {
 	sp.messageUpdate.Unlock()
 }
 
+// UpdatePrefix changes the prefix shown next to the spinner.
+func (sp *Spinner) UpdatePrefix(mesg string) {
+	sp.prefixUpdate.Lock()
+	sp.prefix = mesg
+	sp.prefixUpdate.Unlock()
+}
+
+// parsePrefix updates the spinner prefix.
+func parsePrefix(sp *Spinner, frame, mesg string) {
+	sp.prefixUpdate.RLock()
+	prefix := sp.prefix
+	sp.prefixUpdate.RUnlock()
+	sep := sp.separator
+
+	fmt.Printf("\r\033[K%s %s %s %s", prefix, sep, frame, mesg)
+}
+
 // New returns a new spinner.
-func New(mesg string, opt ...Option) *Spinner {
+func New(opt ...Option) *Spinner {
 	sp := &Spinner{
 		isRunning: false,
-		message:   mesg,
+		message:   "Loading...",
 		mu:        &sync.RWMutex{},
+		separator: defaultSeparator,
 		stopChan:  make(chan bool),
 		symbols:   defaultSymbols,
+		prefix:    "",
 	}
 	for _, fn := range opt {
 		fn(sp)
