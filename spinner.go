@@ -67,6 +67,13 @@ func WithPrefix(prefix string) Option {
 	}
 }
 
+// WithStopSymbol returns an option function that sets the spinner stop symbol.
+func WithStopSymbol(symbol string) Option {
+	return func(sp *Spinner) {
+		sp.stopSymbol = symbol
+	}
+}
+
 // WithColorSpinner returns an option function that sets the spinner color.
 func WithColorSpinner(color ...string) Option {
 	return func(sp *Spinner) {
@@ -122,6 +129,7 @@ type Spinner struct {
 	prefixUpdate   sync.RWMutex
 	separator      string
 	stopChan       chan bool
+	stopSymbol     string
 	symbols        []string
 }
 
@@ -153,7 +161,7 @@ func (sp *Spinner) Start() {
 				frame := sp.colorSpinner + sp.symbols[i%len(sp.symbols)] + colorReset
 
 				if sp.prefix != "" {
-					parsePrefix(sp, frame, mesg)
+					sp.parsePrefix(frame, mesg)
 				} else {
 					fmt.Printf("%s%s %s", clearChars, frame, mesg)
 				}
@@ -163,7 +171,7 @@ func (sp *Spinner) Start() {
 }
 
 // Stop stops the spinner animation.
-func (sp *Spinner) Stop() {
+func (sp *Spinner) Stop(mesg ...string) {
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
 
@@ -175,6 +183,8 @@ func (sp *Spinner) Stop() {
 	sp.stopChan <- true
 
 	fmt.Print(clearChars)
+
+	sp.stopMessage(mesg...)
 }
 
 // UpdateMessage changes the message shown next to the spinner.
@@ -191,8 +201,29 @@ func (sp *Spinner) UpdatePrefix(mesg string) {
 	sp.prefixUpdate.Unlock()
 }
 
+// stopMessage shows the stop message.
+func (sp *Spinner) stopMessage(mesg ...string) {
+	if len(mesg) == 0 {
+		return
+	}
+
+	s := strings.Join(mesg, " ")
+	if sp.prefix != "" {
+		sp.parsePrefix(sp.stopSymbol, s)
+		fmt.Println()
+
+		return
+	}
+
+	if sp.stopSymbol != "" {
+		s = sp.stopSymbol + " " + s
+	}
+
+	fmt.Printf("%s%s\n", clearChars, s)
+}
+
 // parsePrefix updates the spinner prefix.
-func parsePrefix(sp *Spinner, frame, mesg string) {
+func (sp *Spinner) parsePrefix(frame, mesg string) {
 	sp.prefixUpdate.RLock()
 	prefix := sp.colorPrefix + sp.prefix + colorReset
 	sp.prefixUpdate.RUnlock()
