@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-var defaultSymbols = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-
 const (
 	nbsp       = "\u00A0\u00A0"
 	clearChars = "\r\033[K"
