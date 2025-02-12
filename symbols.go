@@ -297,6 +297,16 @@ func WithSymbolsCircles4() Option {
 	}
 }
 
+// WithSymbolsCircles5 returns an option function that sets the spinner unicode
+// animation with circles.
+//
+// "", "", "", "".
+func WithSymbolsCircles5() Option {
+	return func(sp *Spinner) {
+		sp.symbols = []string{"", "", "", "", ""}
+	}
+}
+
 // WithSymbolsBounce returns an option function that sets the spinner unicode
 // animation with circles.
 //
