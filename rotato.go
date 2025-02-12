@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	nbsp       = "\u00A0\u00A0"
+	nbsp       = "\u00A0"
 	clearChars = "\r\033[K"
 )
 
@@ -66,10 +66,18 @@ func WithPrefix(prefix string) Option {
 	}
 }
 
-// WithStopSymbol returns an option function that sets the spinner stop symbol.
-func WithStopSymbol(symbol string) Option {
+// WithDoneSymbol returns an option function that sets the spinner stop symbol.
+func WithDoneSymbol(symbol string) Option {
 	return func(sp *Spinner) {
-		sp.stopSymbol = symbol
+		sp.doneSymbol = symbol
+	}
+}
+
+// WithColorDoneMessage returns an option function that sets the done message
+// color.
+func WithColorDoneMessage(color ...string) Option {
+	return func(sp *Spinner) {
+		sp.doneMessageColor = strings.Join(color, "")
 	}
 }
 
@@ -123,21 +131,22 @@ type Option func(*Spinner)
 
 // Spinner represents a CLI spinner animation.
 type Spinner struct {
-	colorMessage   string
-	colorPrefix    string
-	colorDelimiter string
-	colorSpinner   string
-	delay          time.Duration
-	isRunning      bool
-	message        string
-	messageUpdate  sync.RWMutex
-	mu             *sync.RWMutex
-	prefix         string
-	prefixUpdate   sync.RWMutex
-	delimiter      string
-	stopChan       chan bool
-	stopSymbol     string
-	symbols        []string
+	colorMessage     string
+	colorPrefix      string
+	colorDelimiter   string
+	colorSpinner     string
+	delay            time.Duration
+	isRunning        bool
+	message          string
+	messageUpdate    sync.RWMutex
+	mu               *sync.RWMutex
+	prefix           string
+	prefixUpdate     sync.RWMutex
+	delimiter        string
+	doneChan         chan bool
+	doneSymbol       string
+	doneMessageColor string
+	symbols          []string
 }
 
 // Start starts the spinning animation in a goroutine.
@@ -151,13 +160,20 @@ func (sp *Spinner) Start() {
 
 	sp.isRunning = true
 
+	// Show first frame immediately
+	mesg := sp.currentMessage()
+	frame := sp.currentFrame(0)
+	fmt.Printf("%s%s %s", clearChars, frame, mesg)
+
 	ticker := time.NewTicker(sp.delay)
 	go func() {
 		defer ticker.Stop()
 
-		for i := 0; ; i++ {
+		for i := 1; ; i++ {
 			select {
-			case <-sp.stopChan:
+			case <-sp.doneChan:
+				sp.isRunning = false
+
 				return
 			case <-ticker.C:
 				mesg := sp.currentMessage()
@@ -183,7 +199,7 @@ func (sp *Spinner) Stop(mesg ...string) {
 	}
 
 	sp.isRunning = false
-	sp.stopChan <- true
+	sp.doneChan <- true
 
 	fmt.Print(clearChars)
 
@@ -206,6 +222,10 @@ func (sp *Spinner) UpdatePrefix(mesg string) {
 
 // currentMessage safely constructs and returns the current message.
 func (sp *Spinner) currentMessage() string {
+	if sp.message == "" {
+		return ""
+	}
+
 	sp.messageUpdate.RLock()
 	defer sp.messageUpdate.RUnlock()
 
@@ -214,6 +234,10 @@ func (sp *Spinner) currentMessage() string {
 
 // currentFrame returns the spinner frame for the given iteration.
 func (sp *Spinner) currentFrame(i int) string {
+	if len(sp.symbols) == 0 {
+		return ""
+	}
+
 	return sp.colorSpinner + sp.symbols[i%len(sp.symbols)] + colorReset
 }
 
@@ -224,14 +248,16 @@ func (sp *Spinner) stopMessage(mesg ...string) {
 	}
 
 	s := strings.Join(mesg, " ")
+	s = sp.doneMessageColor + s
+
 	if sp.prefix != "" {
-		sp.parsePrefix(sp.stopSymbol, s)
+		sp.parsePrefix(sp.doneSymbol, s)
 		fmt.Println()
 
 		return
 	}
 
-	s = sp.stopSymbol + " " + s
+	s = sp.doneSymbol + " " + s + colorReset
 
 	fmt.Printf("%s%s\n", clearChars, s)
 }
@@ -255,8 +281,8 @@ func New(opt ...Option) *Spinner {
 		message:    "Loading...",
 		mu:         &sync.RWMutex{},
 		prefix:     "",
-		stopChan:   make(chan bool),
-		stopSymbol: "✓",
+		doneChan:   make(chan bool),
+		doneSymbol: "✓",
 		symbols:    defaultSymbols,
 	}
 	for _, fn := range opt {

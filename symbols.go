@@ -299,6 +299,8 @@ func WithSymbolsCircles4() Option {
 
 // WithSymbolsBounce returns an option function that sets the spinner unicode
 // animation with circles.
+//
+// "[    ]", "[=   ]", "[==  ]", "[=== ]", "[ ===]", "[  ==]", "[   =]".
 func WithSymbolsBounce() Option {
 	return func(sp *Spinner) {
 		sp.symbols = []string{
