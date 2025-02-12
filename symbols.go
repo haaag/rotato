@@ -20,6 +20,27 @@ func WithSymbolsBlock() Option {
 	}
 }
 
+// WithSymbolsBlockBar returns an option function that sets the spinner
+// unicode animation with bars.
+//
+// "█▒▒▒▒▒▒▒▒▒", "███▒▒▒▒▒▒▒", "█████▒▒▒▒▒", "███████▒▒▒", "██████████".
+func WithSymbolsBlockBar() Option {
+	return func(sp *Spinner) {
+		sp.symbols = []string{"█▒▒▒▒▒▒▒▒▒", "███▒▒▒▒▒▒▒", "█████▒▒▒▒▒", "███████▒▒▒", "██████████"}
+	}
+}
+
+// WithSymbolsBlockPretty returns an option function that sets the spinner
+// unicode animation with pretty blocks.
+//
+// "", "", "", "", "", "", "".
+func WithSymbolsBlockPretty() Option {
+	return func(sp *Spinner) {
+		//  
+		sp.symbols = []string{"", "", "", "", "", "", ""}
+	}
+}
+
 // WithSymbolsDots returns an option function that sets the spinner unicode
 // animation with braille patterns.
 //
@@ -304,6 +325,16 @@ func WithSymbolsCircles4() Option {
 func WithSymbolsCircles5() Option {
 	return func(sp *Spinner) {
 		sp.symbols = []string{"", "", "", "", ""}
+	}
+}
+
+// WithSymbolsCircles6 returns an option function that sets the spinner unicode
+// animation with circles.
+//
+// "", "", "", "", "".
+func WithSymbolsCircles6() Option {
+	return func(sp *Spinner) {
+		sp.symbols = []string{"", "", "", "", "", ""}
 	}
 }
 
