@@ -2,6 +2,7 @@
 package rotato
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -151,6 +152,7 @@ type Spinner struct {
 
 // Start starts the spinning animation in a goroutine.
 func (sp *Spinner) Start() {
+	hideCursor()
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
 
@@ -173,7 +175,6 @@ func (sp *Spinner) Start() {
 			select {
 			case <-sp.doneChan:
 				sp.isRunning = false
-
 				return
 			case <-ticker.C:
 				mesg := sp.currentMessage()
@@ -193,6 +194,7 @@ func (sp *Spinner) Start() {
 func (sp *Spinner) Stop(mesg ...string) {
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
+	defer showCursor()
 
 	if !sp.isRunning {
 		return
@@ -288,6 +290,10 @@ func New(opt ...Option) *Spinner {
 	for _, fn := range opt {
 		fn(sp)
 	}
+
+	setupInterruptHandler(context.Background(), func() {
+		showCursor()
+	})
 
 	return sp
 }
