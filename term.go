@@ -3,10 +3,15 @@ package rotato
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
 )
+
+// clearChars represents a sequence of characters used to clear the current
+// line in the terminal.
+const clearChars = "\r\033[K\r"
 
 // setupInterruptHandler handles interruptions.
 func setupInterruptHandler(ctx context.Context, onInterrupt func()) {
@@ -16,7 +21,6 @@ func setupInterruptHandler(ctx context.Context, onInterrupt func()) {
 		os.Interrupt,    // Ctrl+C (SIGINT)
 		syscall.SIGTERM, // Process termination
 	)
-
 	go func() {
 		select {
 		case <-sigChan:
@@ -35,34 +39,46 @@ func setupInterruptHandler(ctx context.Context, onInterrupt func()) {
 }
 
 // hideCursor hides the cursor.
-func hideCursor() {
-	if !isRedirected() {
-		fmt.Print("\033[?25l")
+func hideCursor(output io.Writer) {
+	if !isRedirected(output) {
+		fmt.Print("\r\033[?25l\r")
 	}
 }
 
 // showCursor shows the cursor.
-func showCursor() {
-	if !isRedirected() {
-		fmt.Print("\033[?25h")
+func showCursor(output io.Writer) {
+	if !isRedirected(output) {
+		fmt.Print("\r\033[?25h\r")
 	}
 }
 
-// isRedirected checks if the output is redirected.
-func isRedirected() bool {
-	stat, err := os.Stdout.Stat()
+// isInteractive checks if the output is interactive.
+func isInteractive(sp *Spinner) bool {
+	return !isRedirected(sp.Writer)
+}
+
+// isRedirected checks if the provided output writer is redirected.
+// It returns true if the writer is not a terminal.
+func isRedirected(output io.Writer) bool {
+	file, ok := output.(*os.File)
+	if !ok {
+		// If it's not an *os.File, assume it's redirected,
+		return true
+	}
+
+	stat, err := file.Stat()
 	if err != nil {
 		return false
 	}
-	// Check if the mode is a character device (terminal)
+	// Check if the file mode indicates a character device (terminal).
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		return true
 	}
-	// Additional check using syscall
+	// Additional check using syscall.
 	var st syscall.Stat_t
-	if err := syscall.Fstat(int(os.Stdout.Fd()), &st); err != nil {
+	if err := syscall.Fstat(int(file.Fd()), &st); err != nil {
 		return false
 	}
-	// Check if the file mode is a character device
+	// If the mode does not indicate a character device, the output is redirected.
 	return (st.Mode & syscall.S_IFMT) != syscall.S_IFCHR
 }

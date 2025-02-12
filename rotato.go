@@ -4,15 +4,15 @@ package rotato
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"sync"
 	"time"
 )
 
-const (
-	nbsp       = "\u00A0"
-	clearChars = "\r\033[K"
-)
+// nbsp represents a non-breaking space character.
+const nbsp = "\u00A0"
 
 var (
 	// normal colors.
@@ -127,44 +127,68 @@ func WithFrequency(d time.Duration) Option {
 	}
 }
 
+// WithWriter returns an option function that sets the spinner writer.
+func WithWriter(w io.Writer) Option {
+	return func(sp *Spinner) {
+		sp.Writer = w
+	}
+}
+
 // Option is an option function for the spinner.
 type Option func(*Spinner)
 
 // Spinner represents a CLI spinner animation.
 type Spinner struct {
-	delimiter        string
-	delimiterColor   string
-	doneChan         chan bool
-	doneMessageColor string
-	doneSymbol       string
-	frequency        time.Duration
-	isActive         bool
-	message          string
-	messageColor     string
-	messageUpdate    sync.RWMutex
-	mu               *sync.RWMutex
-	prefixColor      string
-	prefixMesg       string
-	prefixMu         sync.RWMutex
-	spinnerColor     string
-	symbols          []string
+	Writer           io.Writer     // Output writer
+	delimiter        string        // Delimiter between prefix and spinner symbol
+	delimiterColor   string        // Delimiter color
+	doneChan         chan bool     // Channel for stopping the spinner
+	doneMessageColor string        // Done channel message color
+	doneSymbol       string        // Done channel symbol
+	frame            string        // Current spinner frame
+	frameIdx         int           // Current spinner frame index
+	frequency        time.Duration // Spinner animation frequency
+	isActive         bool          // State of the spinner
+	message          string        // Spinner message
+	messageColor     string        // Spinner message color
+	messageUpdate    sync.RWMutex  // Mutex for message update
+	mu               *sync.RWMutex // Mutex for different spinner states
+	prefixColor      string        // Prefix message color
+	prefixMesg       string        // Prefix message
+	prefixMu         sync.RWMutex  // Synchronization mechanism for prefix updates.
+	spinnerColor     string        // Spinner color
+	symbols          []string      // Spinner symbols
 }
 
 // render displays the current frame and message of the spinner.
 func (sp *Spinner) render(current int) {
 	mesg := sp.currentMessage()
-	frame := sp.currentFrame(current)
+	frameFormatted := sp.currentFrame(current)
 
 	if sp.prefixMesg != "" {
-		sp.parsePrefix(frame, mesg)
+		sp.parsePrefix(frameFormatted, mesg)
 	} else {
-		fmt.Printf("%s%s %s", clearChars, frame, mesg)
+		sp.display(fmt.Sprintf("%s %s", frameFormatted, mesg))
 	}
 }
 
 // Start starts the spinning animation in a goroutine.
 func (sp *Spinner) Start() {
-	hideCursor()
+	if !isInteractive(sp) {
+		sp.mu.Lock()
+		defer sp.mu.Unlock()
+
+		if sp.isActive {
+			return
+		}
+
+		sp.isActive = true
+		sp.display(sp.message)
+
+		return
+	}
+
+	hideCursor(sp.Writer)
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
 
@@ -173,14 +197,13 @@ func (sp *Spinner) Start() {
 	}
 
 	sp.isActive = true
-	// Show first frame immediately
-	sp.render(0)
+	if isRedirected(sp.Writer) {
+		sp.render(0)
+		return
+	}
 
-	ticker := time.NewTicker(sp.frequency)
 	go func() {
-		defer ticker.Stop()
-
-		for i := 1; ; i++ {
+		for i := 0; ; i++ {
 			select {
 			case <-sp.doneChan:
 				sp.mu.Lock()
@@ -188,8 +211,14 @@ func (sp *Spinner) Start() {
 				sp.mu.Unlock()
 
 				return
-			case <-ticker.C:
+			default:
+				sp.mu.Lock()
+				if !sp.isActive {
+					return
+				}
 				sp.render(i)
+				sp.mu.Unlock()
+				time.Sleep(sp.frequency)
 			}
 		}
 	}()
@@ -199,17 +228,20 @@ func (sp *Spinner) Start() {
 func (sp *Spinner) Stop(mesg ...string) {
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
-	defer showCursor()
-
 	if !sp.isActive {
 		return
 	}
 
 	sp.isActive = false
+
+	if !isInteractive(sp) {
+		sp.stopMessage(mesg...)
+		return
+	}
+
+	defer showCursor(sp.Writer)
 	sp.doneChan <- true
-
-	fmt.Print(clearChars)
-
+	sp.display("")
 	sp.stopMessage(mesg...)
 }
 
@@ -218,6 +250,14 @@ func (sp *Spinner) Mesg(mesg string) {
 	sp.messageUpdate.Lock()
 	sp.message = mesg
 	sp.messageUpdate.Unlock()
+	if !isInteractive(sp) {
+		_, _ = fmt.Fprintf(sp.Writer, "%s\n", mesg)
+	}
+}
+
+// MesgColor changes the color of the message.
+func (sp *Spinner) MesgColor(color ...string) {
+	sp.messageColor = strings.Join(color, "")
 }
 
 // Prefix changes the prefix shown next to the spinner.
@@ -227,14 +267,18 @@ func (sp *Spinner) Prefix(mesg string) {
 	sp.prefixMu.Unlock()
 }
 
-// MesgColor changes the color of the message.
-func (sp *Spinner) MesgColor(color ...string) {
-	sp.messageColor = strings.Join(color, "")
-}
-
 // Symbols returns the spinner symbols.
 func (sp *Spinner) Symbols() []string {
 	return sp.symbols
+}
+
+// UpdateSymbols updates the spinner symbols.
+func (sp *Spinner) UpdateSymbols(opt Option) {
+	// FIX: when updating symbols, the new symbols wont start at index 0
+	// It looks strange, like a bug.
+	sp.mu.Lock()
+	opt(sp)
+	sp.mu.Unlock()
 }
 
 // currentMessage safely constructs and returns the current message.
@@ -242,7 +286,6 @@ func (sp *Spinner) currentMessage() string {
 	if sp.message == "" {
 		return ""
 	}
-
 	sp.messageUpdate.RLock()
 	defer sp.messageUpdate.RUnlock()
 
@@ -254,8 +297,10 @@ func (sp *Spinner) currentFrame(i int) string {
 	if len(sp.symbols) == 0 {
 		return ""
 	}
+	sp.frameIdx = i % len(sp.symbols)
+	sp.frame = sp.symbols[sp.frameIdx]
 
-	return sp.spinnerColor + sp.symbols[i%len(sp.symbols)] + ColorReset
+	return sp.spinnerColor + sp.frame + ColorReset
 }
 
 // stopMessage shows the stop message.
@@ -263,10 +308,13 @@ func (sp *Spinner) stopMessage(mesg ...string) {
 	if len(mesg) == 0 {
 		return
 	}
-
 	s := strings.Join(mesg, " ")
-	s = sp.doneMessageColor + s
+	if !isInteractive(sp) {
+		sp.display(s)
+		return
+	}
 
+	s = sp.doneMessageColor + s
 	if sp.prefixMesg != "" {
 		sp.parsePrefix(sp.doneSymbol, s)
 		fmt.Println()
@@ -274,9 +322,7 @@ func (sp *Spinner) stopMessage(mesg ...string) {
 		return
 	}
 
-	s = sp.doneSymbol + " " + s + ColorReset
-
-	fmt.Printf("%s%s\n", clearChars, s)
+	sp.display(sp.doneSymbol + " " + s + ColorReset)
 }
 
 // parsePrefix updates the spinner prefix.
@@ -286,7 +332,16 @@ func (sp *Spinner) parsePrefix(frame, mesg string) {
 	sp.prefixMu.RUnlock()
 	del := sp.delimiterColor + sp.delimiter + ColorReset
 
-	fmt.Printf("%s%s%s%s %s", clearChars, prefix, del, frame, mesg)
+	sp.display(fmt.Sprintf("%s%s%s %s", prefix, del, frame, mesg))
+}
+
+// display writes the given string to the output.
+func (sp *Spinner) display(s string) {
+	if isRedirected(sp.Writer) {
+		_, _ = fmt.Fprint(sp.Writer, s+"\n")
+		return
+	}
+	_, _ = fmt.Fprintf(sp.Writer, "%s%s", clearChars, s)
 }
 
 // New returns a new spinner.
@@ -301,13 +356,14 @@ func New(opt ...Option) *Spinner {
 		doneChan:   make(chan bool),
 		doneSymbol: "✓",
 		symbols:    defaultSymbols,
+		Writer:     os.Stdout,
 	}
 	for _, fn := range opt {
 		fn(sp)
 	}
 
 	setupInterruptHandler(context.Background(), func() {
-		showCursor()
+		showCursor(sp.Writer)
 	})
 
 	return sp
