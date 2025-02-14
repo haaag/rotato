@@ -32,7 +32,7 @@ func TestSpinnerState(t *testing.T) {
 	var buf bytes.Buffer
 	sp := New(
 		WithWriter(&buf),
-		WithFrequency(10*time.Millisecond),
+		WithSpinnerFrequency(10*time.Millisecond),
 		WithSymbols([]string{"-", "\\", "|", "/"}...),
 	)
 	sp.Start()
@@ -55,7 +55,7 @@ func TestSpinnerMessageUpdate(t *testing.T) {
 
 	sp := New(
 		WithWriter(&buf),
-		WithFrequency(10*time.Millisecond),
+		WithSpinnerFrequency(10*time.Millisecond),
 		WithMesg("Initial"),
 	)
 	sp.Start()

@@ -60,6 +60,14 @@ func WithMesg(s string) Option {
 	}
 }
 
+// WithMesgColor returns an option function that sets the spinner message
+// color.
+func WithMesgColor(color ...string) Option {
+	return func(sp *Spinner) {
+		sp.messageColor = strings.Join(color, "")
+	}
+}
+
 // WithPrefix returns an option function that sets the spinner prefix.
 func WithPrefix(prefix string) Option {
 	return func(sp *Spinner) {
@@ -90,18 +98,17 @@ func WithDoneColorMesg(color ...string) Option {
 	}
 }
 
-// WithColorSpinner returns an option function that sets the spinner color.
-func WithColorSpinner(color ...string) Option {
+// WithSpinnerColor returns an option function that sets the spinner color.
+func WithSpinnerColor(color ...string) Option {
 	return func(sp *Spinner) {
 		sp.spinnerColor = strings.Join(color, "")
 	}
 }
 
-// WithColorMesg returns an option function that sets the spinner message
-// color.
-func WithColorMesg(color ...string) Option {
+// WithSpinnerFrequency returns an option function that sets the spinner frequency.
+func WithSpinnerFrequency(d time.Duration) Option {
 	return func(sp *Spinner) {
-		sp.messageColor = strings.Join(color, "")
+		sp.frequency = d
 	}
 }
 
@@ -117,13 +124,6 @@ func WithDelimiter(s string) Option {
 func WithDelimiterColor(color ...string) Option {
 	return func(sp *Spinner) {
 		sp.delimiterColor = strings.Join(color, "")
-	}
-}
-
-// WithFrequency returns an option function that sets the spinner frequency.
-func WithFrequency(d time.Duration) Option {
-	return func(sp *Spinner) {
-		sp.frequency = d
 	}
 }
 
