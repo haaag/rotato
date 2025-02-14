@@ -208,6 +208,16 @@ func WithSymbolsSquare() Option {
 	}
 }
 
+// WithSymbolsSquare2 returns an option function that sets the spinner unicode
+// animation with square segments.
+//
+// "", "", "", "", "".
+func WithSymbolsSquare2() Option {
+	return func(sp *Spinner) {
+		sp.symbols = []string{"", "", "", "", ""}
+	}
+}
+
 // WithSymbolsClock returns an option function that sets the spinner unicode
 // animation with clock symbols.
 //
@@ -335,6 +345,16 @@ func WithSymbolsCircles5() Option {
 func WithSymbolsCircles6() Option {
 	return func(sp *Spinner) {
 		sp.symbols = []string{"", "", "", "", "", ""}
+	}
+}
+
+// WithSymbolsCircles7 returns an option function that sets the spinner unicode
+// animation with circles.
+//
+// "", "", "", "", "", "".
+func WithSymbolsCircles7() Option {
+	return func(sp *Spinner) {
+		sp.symbols = []string{"", "", "", "", "", ""}
 	}
 }
 

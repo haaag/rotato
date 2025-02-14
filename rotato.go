@@ -67,6 +67,14 @@ func WithPrefix(prefix string) Option {
 	}
 }
 
+// WithPrefixColor returns an option function that sets the spinner color
+// prefix.
+func WithPrefixColor(color ...string) Option {
+	return func(sp *Spinner) {
+		sp.prefixColor = strings.Join(color, "")
+	}
+}
+
 // WithDoneSymbol returns an option function that sets the spinner stop symbol.
 func WithDoneSymbol(symbol string) Option {
 	return func(sp *Spinner) {
@@ -74,9 +82,9 @@ func WithDoneSymbol(symbol string) Option {
 	}
 }
 
-// WithColorDoneMesg returns an option function that sets the done message
+// WithDoneColorMesg returns an option function that sets the done message
 // color.
-func WithColorDoneMesg(color ...string) Option {
+func WithDoneColorMesg(color ...string) Option {
 	return func(sp *Spinner) {
 		sp.doneMessageColor = strings.Join(color, "")
 	}
@@ -97,26 +105,18 @@ func WithColorMesg(color ...string) Option {
 	}
 }
 
-// WithColorPrefix returns an option function that sets the spinner color
-// prefix.
-func WithColorPrefix(color ...string) Option {
-	return func(sp *Spinner) {
-		sp.prefixColor = strings.Join(color, "")
-	}
-}
-
-// WithColorDelimiter returns an option function that sets the spinner color
-// delimiter, only visible with `prefix`.
-func WithColorDelimiter(color ...string) Option {
-	return func(sp *Spinner) {
-		sp.delimiterColor = strings.Join(color, "")
-	}
-}
-
 // WithDelimiter returns an option function that sets the spinner delimiter.
 func WithDelimiter(s string) Option {
 	return func(sp *Spinner) {
 		sp.delimiter = s
+	}
+}
+
+// WithDelimiterColor returns an option function that sets the spinner color
+// delimiter, only visible with `prefix`.
+func WithDelimiterColor(color ...string) Option {
+	return func(sp *Spinner) {
+		sp.delimiterColor = strings.Join(color, "")
 	}
 }
 
