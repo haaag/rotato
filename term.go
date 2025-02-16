@@ -13,6 +13,14 @@ import (
 // line in the terminal.
 const clearChars = "\r\033[K\r"
 
+// nonInteractive indicates whether the terminal is non-interactive.
+var nonInteractive = false
+
+// SetNonInteractive sets the terminal to non-interactive mode.
+func SetNonInteractive() {
+	nonInteractive = true
+}
+
 // setupInterruptHandler handles interruptions.
 func setupInterruptHandler(ctx context.Context, onInterrupt func()) {
 	sigChan := make(chan os.Signal, 1)
@@ -60,6 +68,9 @@ func isInteractive(sp *Spinner) bool {
 // isRedirected checks if the provided output writer is redirected.
 // It returns true if the writer is not a terminal.
 func isRedirected(output io.Writer) bool {
+	if nonInteractive {
+		return true
+	}
 	file, ok := output.(*os.File)
 	if !ok {
 		// If it's not an *os.File, assume it's redirected,
