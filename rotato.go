@@ -203,6 +203,9 @@ func (sp *Spinner) Start() {
 	}
 
 	go func() {
+		ticker := time.NewTicker(sp.frequency)
+		defer ticker.Stop()
+
 		for i := 0; ; i++ {
 			select {
 			case <-sp.doneChan:
@@ -211,14 +214,14 @@ func (sp *Spinner) Start() {
 				sp.mu.Unlock()
 
 				return
-			default:
+			case <-ticker.C:
 				sp.mu.Lock()
 				if !sp.isActive {
+					sp.mu.Unlock()
 					return
 				}
 				sp.render(i)
 				sp.mu.Unlock()
-				time.Sleep(sp.frequency)
 			}
 		}
 	}()
