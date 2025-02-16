@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -48,6 +49,7 @@ var (
 	ColorStyleItalic        = "\x1b[3m"
 	ColorStyleStrikethrough = "\x1b[9m"
 	ColorStyleUnderline     = "\x1b[4m"
+	ColorStyleBlink         = "\x1b[5m"
 
 	// reset.
 	ColorReset = "\x1b[0m"
@@ -98,6 +100,21 @@ func WithDoneColorMesg(color ...string) Option {
 	}
 }
 
+// WithFailSymbol returns an option function that sets the spinner fail symbol.
+func WithFailSymbol(symbol string) Option {
+	return func(sp *Spinner) {
+		sp.failSymbol = symbol
+	}
+}
+
+// WithFailColorMesg returns an option function that sets the fail message
+// color.
+func WithFailColorMesg(color ...string) Option {
+	return func(sp *Spinner) {
+		sp.failMessageColor = strings.Join(color, "")
+	}
+}
+
 // WithSpinnerColor returns an option function that sets the spinner color.
 func WithSpinnerColor(color ...string) Option {
 	return func(sp *Spinner) {
@@ -145,6 +162,8 @@ type Spinner struct {
 	doneChan         chan bool     // Channel for stopping the spinner
 	doneMessageColor string        // Done channel message color
 	doneSymbol       string        // Done channel symbol
+	failMessageColor string        // Fail message color
+	failSymbol       string        // Fail symbol
 	frame            string        // Current spinner frame
 	frameIdx         int           // Current spinner frame index
 	frequency        time.Duration // Spinner animation frequency
@@ -229,27 +248,30 @@ func (sp *Spinner) Start() {
 
 // Stop stops the spinner animation.
 func (sp *Spinner) Stop(mesg ...string) {
-	sp.mu.Lock()
-	defer sp.mu.Unlock()
-	if !sp.isActive {
+	sp.stopSpinner()
+	if len(mesg) == 0 {
 		return
 	}
-
-	sp.isActive = false
-
-	if !isInteractive(sp) {
-		sp.stopMessage(mesg...)
-		return
-	}
-
-	defer showCursor(sp.Writer)
-	sp.doneChan <- true
-	sp.display("")
-	sp.stopMessage(mesg...)
+	sp.displayMessage(sp.doneSymbol, sp.doneMessageColor, mesg...)
 }
 
-// Mesg changes the message shown next to the spinner.
-func (sp *Spinner) Mesg(mesg string) {
+// Fail fails the spinner animation.
+func (sp *Spinner) Fail(mesg ...string) {
+	sp.stopSpinner()
+	if len(mesg) == 0 {
+		sp.display("Failed\n")
+		return
+	}
+	sp.displayMessage(sp.failSymbol, sp.failMessageColor, mesg...)
+}
+
+// Symbols returns the spinner symbols.
+func (sp *Spinner) Symbols() []string {
+	return sp.symbols
+}
+
+// UpdateMesg changes the message shown next to the spinner.
+func (sp *Spinner) UpdateMesg(mesg string) {
 	sp.messageUpdate.Lock()
 	sp.message = mesg
 	sp.messageUpdate.Unlock()
@@ -258,21 +280,26 @@ func (sp *Spinner) Mesg(mesg string) {
 	}
 }
 
-// MesgColor changes the color of the message.
-func (sp *Spinner) MesgColor(color ...string) {
+// UpdateMesgColor changes the color of the message.
+func (sp *Spinner) UpdateMesgColor(color ...string) {
 	sp.messageColor = strings.Join(color, "")
 }
 
-// Prefix changes the prefix shown next to the spinner.
-func (sp *Spinner) Prefix(mesg string) {
+// UpdatePrefix changes the prefix shown next to the spinner.
+func (sp *Spinner) UpdatePrefix(mesg string) {
 	sp.prefixMu.Lock()
 	sp.prefixMesg = mesg
 	sp.prefixMu.Unlock()
 }
 
-// Symbols returns the spinner symbols.
-func (sp *Spinner) Symbols() []string {
-	return sp.symbols
+// UpdatePrefixColor changes the color of the prefix.
+func (sp *Spinner) UpdatePrefixColor(color ...string) {
+	sp.prefixColor = strings.Join(color, "")
+}
+
+// UpdateSpinnerColor changes the color of the spinner.
+func (sp *Spinner) UpdateSpinnerColor(color ...string) {
+	sp.spinnerColor = strings.Join(color, "")
 }
 
 // UpdateSymbols updates the spinner symbols.
@@ -306,28 +333,6 @@ func (sp *Spinner) currentFrame(i int) string {
 	return sp.spinnerColor + sp.frame + ColorReset
 }
 
-// stopMessage shows the stop message.
-func (sp *Spinner) stopMessage(mesg ...string) {
-	if len(mesg) == 0 {
-		return
-	}
-	s := strings.Join(mesg, " ")
-	if !isInteractive(sp) {
-		sp.display(s)
-		return
-	}
-
-	s = sp.doneMessageColor + s
-	if sp.prefixMesg != "" {
-		sp.parsePrefix(sp.doneSymbol, s)
-		fmt.Println(ColorReset)
-
-		return
-	}
-
-	sp.display(sp.doneSymbol + " " + s + ColorReset)
-}
-
 // parsePrefix updates the spinner prefix.
 func (sp *Spinner) parsePrefix(frame, mesg string) {
 	sp.prefixMu.RLock()
@@ -341,10 +346,58 @@ func (sp *Spinner) parsePrefix(frame, mesg string) {
 // display writes the given string to the output.
 func (sp *Spinner) display(s string) {
 	if isRedirected(sp.Writer) {
-		_, _ = fmt.Fprint(sp.Writer, s+"\n")
+		_, _ = fmt.Fprint(sp.Writer, removeANSI(s))
 		return
 	}
 	_, _ = fmt.Fprintf(sp.Writer, "%s%s", clearChars, s)
+}
+
+// stopSpinner handles the common logic for stopping the spinner.
+func (sp *Spinner) stopSpinner() {
+	sp.mu.Lock()
+	defer sp.mu.Unlock()
+
+	if !sp.isActive {
+		return
+	}
+
+	sp.isActive = false
+
+	if !isInteractive(sp) {
+		return
+	}
+
+	defer showCursor(sp.Writer)
+	sp.doneChan <- true
+}
+
+// displayMessage formats and displays a message with optional prefix and color.
+func (sp *Spinner) displayMessage(symbol, color string, mesg ...string) {
+	if len(mesg) == 0 {
+		return
+	}
+
+	s := strings.Join(mesg, " ")
+	s = color + s
+
+	if !isInteractive(sp) {
+		sp.display(s)
+		return
+	}
+
+	if sp.prefixMesg != "" {
+		sp.parsePrefix(symbol, s)
+		fmt.Println(ColorReset)
+		return
+	}
+
+	sp.display(symbol + " " + s + ColorReset)
+}
+
+// removeANSI removes ANSI codes from a given string.
+func removeANSI(s string) string {
+	re := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	return re.ReplaceAllString(s, "")
 }
 
 // New returns a new spinner.
@@ -358,6 +411,7 @@ func New(opt ...Option) *Spinner {
 		prefixMesg: "",
 		doneChan:   make(chan bool),
 		doneSymbol: "✓",
+		failSymbol: "✗",
 		symbols:    defaultSymbols,
 		Writer:     os.Stdout,
 	}

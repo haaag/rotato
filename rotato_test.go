@@ -61,12 +61,65 @@ func TestSpinnerMessageUpdate(t *testing.T) {
 	sp.Start()
 	time.Sleep(20 * time.Millisecond)
 	// Update the message.
-	sp.Mesg("Updated")
+	sp.UpdateMesg("Updated")
 	time.Sleep(50 * time.Millisecond)
 	sp.Stop("Done")
 
 	out := buf.String()
 	if !strings.Contains(out, "Updated") {
 		t.Errorf("expected spinner output to contain updated message, got %q", out)
+	}
+}
+
+func TestFailMesg(t *testing.T) {
+	var buf bytes.Buffer
+	sp := New(WithWriter(&buf))
+	sp.Fail("Failed")
+	out := buf.String()
+	if !strings.Contains(out, "Failed") {
+		t.Errorf("expected spinner output to contain 'Failed', got %q", out)
+	}
+}
+
+func TestRemoveANSI(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "Simple ANSI codes",
+			input: ColorRed + ColorStyleBold + "Hello" + ColorReset,
+			want:  "Hello",
+		},
+		{
+			name:  "No ANSI codes",
+			input: "No ANSI codes here",
+			want:  "No ANSI codes here",
+		},
+		{
+			name:  "Multiple ANSI sequences",
+			input: "Text " + ColorRed + "Red" + ColorReset + " and " + ColorGreen + "Green" + ColorReset,
+			want:  "Text Red and Green",
+		},
+		{
+			name:  "ANSI only",
+			input: ColorBlue + ColorStyleBold + "Blue Bold Text" + ColorReset,
+			want:  "Blue Bold Text",
+		},
+		{
+			name:  "Empty ANSI",
+			input: ColorBlue,
+			want:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := removeANSI(tt.input)
+			if got != tt.want {
+				t.Errorf("removeANSI(%q) = %q; want %q", tt.input, got, tt.want)
+			}
+		})
 	}
 }
