@@ -320,7 +320,7 @@ func (sp *Spinner) stopMessage(mesg ...string) {
 	s = sp.doneMessageColor + s
 	if sp.prefixMesg != "" {
 		sp.parsePrefix(sp.doneSymbol, s)
-		fmt.Println()
+		fmt.Println(ColorReset)
 
 		return
 	}
