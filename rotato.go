@@ -202,6 +202,10 @@ func (sp *Spinner) Start() {
 		}
 
 		sp.isActive = true
+		// add prefix
+		if sp.prefixMesg != "" {
+			sp.message = fmt.Sprintf("%s%s%s", sp.prefixMesg, sp.delimiter, sp.message)
+		}
 		sp.display(sp.message)
 
 		return
