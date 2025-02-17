@@ -20,13 +20,106 @@ func WithSymbolsBlock() Option {
 	}
 }
 
-// WithSymbolsBlockBar returns an option function that sets the spinner
+// WithSymbolsBarBlock returns an option function that sets the spinner
 // unicode animation with bars.
 //
 // "█▒▒▒▒▒▒▒▒▒", "███▒▒▒▒▒▒▒", "█████▒▒▒▒▒", "███████▒▒▒", "██████████".
-func WithSymbolsBlockBar() Option {
+func WithSymbolsBarBlock() Option {
 	return func(sp *Spinner) {
 		sp.symbols = []string{"█▒▒▒▒▒▒▒▒▒", "███▒▒▒▒▒▒▒", "█████▒▒▒▒▒", "███████▒▒▒", "██████████"}
+	}
+}
+
+// WithSymbolsBarBlock2 returns an option function that sets the spinner
+// unicode animation with bars.
+//
+// "[|       ]", "[||      ]", "[|||     ]", "[||||    ]", "[|||||   ]", "[||||||  ]", "[||||||| ]", "[||||||||]".
+func WithSymbolsBarBlock2() Option {
+	return func(sp *Spinner) {
+		sp.symbols = []string{
+			"[       ]",
+			"[|      ]",
+			"[||     ]",
+			"[|||    ]",
+			"[||||   ]",
+			"[|||||  ]",
+			"[|||||| ]",
+			"[|||||||]",
+		}
+	}
+}
+
+// WithSymbolsBarBlock3 returns an option function that sets the spinner
+// unicode animation with bars.
+//
+// "[=       ]", "[==      ]", "[===     ]", "[====    ]", "[=====   ]", "[======  ]", "[======= ]", "[========]".
+func WithSymbolsBarBlock3() Option {
+	return func(sp *Spinner) {
+		sp.symbols = []string{
+			"[       ]",
+			"[=      ]",
+			"[==     ]",
+			"[===    ]",
+			"[====   ]",
+			"[=====  ]",
+			"[====== ]",
+			"[=======]",
+		}
+	}
+}
+
+// WithSymbolsBarBlock4 returns an option function that sets the spinner
+// unicode animation with bars.
+//
+// "|", "||", "|||", "||||", "|||||", "||||||", "|||||||", "||||||||",
+// "|||||||", "||||||", "|||||", "||||", "|||", "||", "|".
+func WithSymbolsBarBlock4() Option {
+	return func(sp *Spinner) {
+		sp.symbols = []string{
+			"|",
+			"||",
+			"|||",
+			"||||",
+			"|||||",
+			"||||||",
+			"|||||||",
+			"||||||||",
+			"|||||||",
+			"||||||",
+			"|||||",
+			"||||",
+			"|||",
+			"||",
+			"|",
+		}
+	}
+}
+
+// WithSymbolsBarBlock5 returns an option function that sets the spinner
+// unicode animation with bars.
+//
+// "[*-------]", "[-*------]", "[--*-----]", "[---*----]", "[----*---]".
+// "[-----*--]", "[------*-]", "[-------*]", "[------*-]", "[-----*--]".
+// "[----*---]", "[---*----]", "[--*-----]", "[-*------]", "[*-------]".
+func WithSymbolsBarBlock5() Option {
+	return func(sp *Spinner) {
+		sp.symbols = []string{
+			"[*-------]",
+			"[-*------]",
+			"[--*-----]",
+			"[---*----]",
+			"[----*---]",
+			"[-----*--]",
+			"[------*-]",
+			"[-------*]",
+			"[------*-]",
+			"[-----*--]",
+			"[----*---]",
+			"[---*----]",
+			"[--*-----]",
+			"[-*------]",
+			"[*-------]",
+		}
 	}
 }
 
@@ -288,6 +381,16 @@ func WithSymbolsArrows3() Option {
 	}
 }
 
+// WithSymbolsArrows4 returns an option function that sets the spinner unicode
+// animation with arrows.
+//
+// "←", "↖", "↑", "↗", "→", "↘", "↓", "↙".
+func WithSymbolsArrows4() Option {
+	return func(sp *Spinner) {
+		sp.symbols = []string{"←", "↖", "↑", "↗", "→", "↘", "↓", "↙"}
+	}
+}
+
 // WithSymbolsCircles returns an option function that sets the spinner unicode
 // animation with circles
 //
@@ -425,10 +528,20 @@ func WithSymbolsToggle2() Option {
 	}
 }
 
+// WithSymbolsToggle3 returns an option function that sets the spinner unicode
+// animation with toggle symbols.
+//
+// "◉", "◎".
+func WithSymbolsToggle3() Option {
+	return func(sp *Spinner) {
+		sp.symbols = []string{"◉", "◎"}
+	}
+}
+
 // WithSymbolsLoading returns an option function that sets the spinner unicode
 // animation with loading symbols.
 //
-// loading....
+// `loading....`.
 func WithSymbolsLoading() Option {
 	return func(sp *Spinner) {
 		sp.symbols = []string{

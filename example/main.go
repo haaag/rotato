@@ -22,7 +22,11 @@ type rotatoSymbols struct {
 
 var allSymbols = []rotatoSymbols{
 	{s: "WithSymbolsBlock", o: rotato.WithSymbolsBlock()},
-	{s: "WithSymbolsBlockBar", o: rotato.WithSymbolsBlockBar()},
+	{s: "WithSymbolsBlockBar", o: rotato.WithSymbolsBarBlock()},
+	{s: "WithSymbolsBlockBar2", o: rotato.WithSymbolsBarBlock2()},
+	{s: "WithSymbolsBlockBar3", o: rotato.WithSymbolsBarBlock3()},
+	{s: "WithSymbolsBlockBar4", o: rotato.WithSymbolsBarBlock4()},
+	{s: "WithSymbolsBlockBar5", o: rotato.WithSymbolsBarBlock5()},
 	{s: "WithSymbolsBlockPretty", o: rotato.WithSymbolsBlockPretty()},
 	{s: "WithSymbolsDots", o: rotato.WithSymbolsDots()},
 	{s: "WithSymbolsDots2", o: rotato.WithSymbolsDots2()},
@@ -45,6 +49,7 @@ var allSymbols = []rotatoSymbols{
 	{s: "WithSymbolsArrows", o: rotato.WithSymbolsArrows()},
 	{s: "WithSymbolsArrows2", o: rotato.WithSymbolsArrows2()},
 	{s: "WithSymbolsArrows3", o: rotato.WithSymbolsArrows3()},
+	{s: "WithSymbolsArrows4", o: rotato.WithSymbolsArrows4()},
 	{s: "WithSymbolsCircles", o: rotato.WithSymbolsCircles()},
 	{s: "WithSymbolsCircles2", o: rotato.WithSymbolsCircles2()},
 	{s: "WithSymbolsCircles3", o: rotato.WithSymbolsCircles3()},
@@ -56,6 +61,7 @@ var allSymbols = []rotatoSymbols{
 	{s: "WithSymbolsBounceBall", o: rotato.WithSymbolsBounceBall()},
 	{s: "WithSymbolsToggle", o: rotato.WithSymbolsToggle()},
 	{s: "WithSymbolsToggle2", o: rotato.WithSymbolsToggle2()},
+	{s: "WithSymbolsToggle3", o: rotato.WithSymbolsToggle3()},
 	{s: "WithSymbolsLoading", o: rotato.WithSymbolsLoading()},
 }
 
@@ -123,7 +129,7 @@ func spConnection() {
 	// updating
 	time.Sleep(1 * time.Second)
 	c.UpdateMesgColor(rotato.ColorGray)
-	c.UpdateSymbols(rotato.WithSymbolsBlockBar())
+	c.UpdateSymbols(rotato.WithSymbolsBarBlock())
 	for i := 0; i < 15; i++ {
 		c.UpdateMesg(randomString(12) + ".zip")
 		time.Sleep(200 * time.Millisecond)
