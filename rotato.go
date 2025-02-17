@@ -159,7 +159,7 @@ type Spinner struct {
 	Writer           io.Writer     // Output writer
 	delimiter        string        // Delimiter between prefix and spinner symbol
 	delimiterColor   string        // Delimiter color
-	doneChan         chan bool     // Channel for stopping the spinner
+	doneChan         chan struct{} // Channel for stopping the spinner
 	doneMessageColor string        // Done channel message color
 	doneSymbol       string        // Done channel symbol
 	failMessageColor string        // Fail message color
@@ -221,17 +221,13 @@ func (sp *Spinner) Start() {
 		return
 	}
 
+	ticker := time.NewTicker(sp.frequency)
 	go func() {
-		ticker := time.NewTicker(sp.frequency)
 		defer ticker.Stop()
 
 		for i := 0; ; i++ {
 			select {
 			case <-sp.doneChan:
-				sp.mu.Lock()
-				sp.isActive = false
-				sp.mu.Unlock()
-
 				return
 			case <-ticker.C:
 				sp.mu.Lock()
@@ -246,8 +242,8 @@ func (sp *Spinner) Start() {
 	}()
 }
 
-// Stop stops the spinner animation.
-func (sp *Spinner) Stop(mesg ...string) {
+// Done stops the spinner animation.
+func (sp *Spinner) Done(mesg ...string) {
 	sp.stopSpinner()
 	if len(mesg) == 0 {
 		return
@@ -368,7 +364,7 @@ func (sp *Spinner) stopSpinner() {
 	}
 
 	defer showCursor(sp.Writer)
-	sp.doneChan <- true
+	sp.doneChan <- struct{}{}
 }
 
 // displayMessage formats and displays a message with optional prefix and color.
@@ -409,7 +405,7 @@ func New(opt ...Option) *Spinner {
 		message:    "Loading...",
 		mu:         &sync.RWMutex{},
 		prefixMesg: "",
-		doneChan:   make(chan bool),
+		doneChan:   make(chan struct{}, 1),
 		doneSymbol: "✓",
 		failSymbol: "✗",
 		symbols:    defaultSymbols,

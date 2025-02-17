@@ -15,7 +15,7 @@ func TestSpinnerOutput(t *testing.T) {
 
 	sp.Start()
 	time.Sleep(50 * time.Millisecond)
-	sp.Stop("Done")
+	sp.Done("Done")
 
 	output := buf.String()
 	if output == "" {
@@ -42,7 +42,7 @@ func TestSpinnerState(t *testing.T) {
 		t.Error("expected spinner to be running")
 	}
 	// verify that the spinner state is false.
-	sp.Stop("Stopped")
+	sp.Done("Stopped")
 	if sp.isActive {
 		t.Error("expected spinner to be stopped after calling Stop()")
 	}
@@ -63,7 +63,7 @@ func TestSpinnerMessageUpdate(t *testing.T) {
 	// Update the message.
 	sp.UpdateMesg("Updated")
 	time.Sleep(50 * time.Millisecond)
-	sp.Stop("Done")
+	sp.Done("Done")
 
 	out := buf.String()
 	if !strings.Contains(out, "Updated") {
