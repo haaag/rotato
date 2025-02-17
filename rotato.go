@@ -186,9 +186,9 @@ func (sp *Spinner) render(current int) {
 
 	if sp.prefixMesg != "" {
 		sp.parsePrefix(frameFormatted, mesg)
-	} else {
-		sp.display(fmt.Sprintf("%s %s", frameFormatted, mesg))
+		return
 	}
+	sp.display(fmt.Sprintf("%s %s", frameFormatted, mesg))
 }
 
 // Start starts the spinning animation in a goroutine.
@@ -253,10 +253,12 @@ func (sp *Spinner) Done(mesg ...string) {
 
 // Fail fails the spinner animation.
 func (sp *Spinner) Fail(mesg ...string) {
+	if !sp.isActive {
+		return
+	}
 	sp.stopSpinner()
 	if len(mesg) == 0 {
-		sp.display("Failed\n")
-		return
+		mesg = append(mesg, "Failed")
 	}
 	sp.displayMessage(sp.failSymbol, sp.failMessageColor, mesg...)
 }
@@ -293,6 +295,11 @@ func (sp *Spinner) UpdatePrefixColor(color ...string) {
 	sp.prefixColor = strings.Join(color, "")
 }
 
+// UpdateDoneMesgColor changes the done message shown next to the spinner.
+func (sp *Spinner) UpdateDoneMesgColor(mesg ...string) {
+	sp.doneMessageColor = strings.Join(mesg, "")
+}
+
 // UpdateSpinnerColor changes the color of the spinner.
 func (sp *Spinner) UpdateSpinnerColor(color ...string) {
 	sp.spinnerColor = strings.Join(color, "")
@@ -300,8 +307,6 @@ func (sp *Spinner) UpdateSpinnerColor(color ...string) {
 
 // UpdateSymbols updates the spinner symbols.
 func (sp *Spinner) UpdateSymbols(opt Option) {
-	// FIX: when updating symbols, the new symbols wont start at index 0
-	// It looks strange, like a bug.
 	sp.mu.Lock()
 	opt(sp)
 	sp.mu.Unlock()
@@ -374,7 +379,7 @@ func (sp *Spinner) displayMessage(symbol, color string, mesg ...string) {
 	}
 
 	s := strings.Join(mesg, " ")
-	s = color + s
+	s = color + s + "\n"
 
 	if !isInteractive(sp) {
 		sp.display(s)
@@ -383,7 +388,7 @@ func (sp *Spinner) displayMessage(symbol, color string, mesg ...string) {
 
 	if sp.prefixMesg != "" {
 		sp.parsePrefix(symbol, s)
-		fmt.Println(ColorReset)
+		fmt.Print(ColorReset)
 		return
 	}
 

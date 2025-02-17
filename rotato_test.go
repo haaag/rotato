@@ -74,6 +74,7 @@ func TestSpinnerMessageUpdate(t *testing.T) {
 func TestFailMesg(t *testing.T) {
 	var buf bytes.Buffer
 	sp := New(WithWriter(&buf))
+	sp.Start()
 	sp.Fail("Failed")
 	out := buf.String()
 	if !strings.Contains(out, "Failed") {
