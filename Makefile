@@ -21,3 +21,9 @@ lint:
 	@echo '>> Linting code'
 	@go vet ./...
 	golangci-lint run ./...
+
+# run example
+demo:
+	@go run example/main.go -demo
+
+.PHONY: test testfn lint full

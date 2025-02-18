@@ -101,55 +101,55 @@ func showSymbols() {
 
 // spSimple simulates a simple task with colors.
 func spSimple() {
-	sp := rotato.New(
-		rotato.WithSymbolsDots(),
+	r := rotato.New(
 		rotato.WithSpinnerColor(rotato.ColorBrightGreen),
 		rotato.WithPrefix("Simple Task #1"),
 		rotato.WithDoneColorMesg(rotato.ColorBrightGreen, rotato.ColorStyleItalic),
 	)
-	sp.Start()
+	r.Start()
 	time.Sleep(2 * time.Second)
-	sp.Done("Task Completed!")
+	r.Done("Task Completed!")
 }
 
 // spConnection simulates a connection process, processing files.
 func spConnection() {
-	c := rotato.New(
+	r := rotato.New(
 		rotato.WithSymbolsCircles3(),
 		rotato.WithSpinnerColor(rotato.ColorBrightOrange),
 		rotato.WithMesg("Connecting..."),
 		rotato.WithPrefix("S3 Backup"),
 	)
-	c.Start()
+	r.Start()
 	time.Sleep(2 * time.Second)
 	// connected
-	c.UpdateSymbols(rotato.WithSymbols(rotato.ColorBrightGreen + "✓"))
-	c.UpdateMesg("Connected!")
-	c.UpdateMesgColor(rotato.ColorBrightGreen, rotato.ColorStyleItalic)
+	r.UpdateSymbols(rotato.WithSymbols(rotato.ColorBrightGreen + "✓"))
+	r.UpdateMesg("Connected!")
+	r.UpdateMesgColor(rotato.ColorBrightGreen, rotato.ColorStyleItalic)
 	// updating
 	time.Sleep(1 * time.Second)
-	c.UpdateMesgColor(rotato.ColorGray)
-	c.UpdateSymbols(rotato.WithSymbolsBarBlock())
+	r.UpdateMesgColor(rotato.ColorGray)
+	r.UpdateSymbols(rotato.WithSymbolsBarBlock())
 	for i := 0; i < 15; i++ {
-		c.UpdateMesg(randomString(12) + ".zip")
+		r.UpdateMesg(randomString(12) + ".zip")
 		time.Sleep(200 * time.Millisecond)
 	}
 	// end
-	c.Done("Backup completed!")
+	r.Done("Backup completed!")
 }
 
+// spFail simulates a failed connection process.
 func spFail() {
-	sp := rotato.New(
+	r := rotato.New(
 		rotato.WithMesg("Trying to connect..."),
 		rotato.WithPrefix("AWS Server"),
 		rotato.WithFailColorMesg(rotato.ColorBrightRed, rotato.ColorStyleBlink),
 	)
-	sp.Start()
+	r.Start()
 	// trying to connect
 	time.Sleep(2 * time.Second)
 	// fail
 	if true {
-		sp.Fail("Connection Failed!")
+		r.Fail("Connection Failed!")
 	}
 }
 
