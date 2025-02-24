@@ -250,6 +250,7 @@ func (sp *Spinner) Start() {
 func (sp *Spinner) Done(mesg ...string) {
 	sp.stopSpinner()
 	if len(mesg) == 0 {
+		fmt.Print(clearChars)
 		return
 	}
 	sp.displayMessage(sp.doneSymbol, sp.doneMessageColor, mesg...)
