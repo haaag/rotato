@@ -165,6 +165,8 @@ func main() {
 		spSimple()
 		spConnection()
 		spFail()
+	default:
+		flag.PrintDefaults()
 	}
 }
 
